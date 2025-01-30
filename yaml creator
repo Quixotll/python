@@ -1,0 +1,36 @@
+import yaml
+
+# Nombre del archivo de entrada y salida
+input_file = "lista.txt"
+output_file = "port-monitor.yaml"
+
+# Servidor fijo
+server_address = "ht21m0002"
+
+# Leer la lista de instancias desde el archivo
+instances = []
+with open(input_file, "r") as file:
+    for line in file:
+        line = line.strip()
+        if line:  # Ignorar líneas vacías
+            name, port = line.rsplit("-", 1)  # Separar el nombre del puerto
+            instances.append({
+                "name": line,
+                "command": "metrics",
+                "arguments": [],
+                "address": f"{server_address}:{port}",
+                "network": "tcp",
+                "timeout": 5,
+                "labels": {
+                    "env": "prod"
+                }
+            })
+
+# Estructura YAML final
+yaml_data = {"instances": instances}
+
+# Escribir en el archivo YAML
+with open(output_file, "w") as yaml_file:
+    yaml.dump(yaml_data, yaml_file, default_flow_style=False)
+
+print(f"Archivo '{output_file}' generado con éxito.")
