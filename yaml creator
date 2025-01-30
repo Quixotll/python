@@ -1,4 +1,5 @@
 import yaml
+from collections import OrderedDict
 
 # Nombre del archivo de entrada y salida
 input_file = "lista.txt"
@@ -14,17 +15,19 @@ with open(input_file, "r") as file:
         line = line.strip()
         if line:  # Ignorar líneas vacías
             name, port = line.rsplit("-", 1)  # Separar el nombre del puerto
-            instances.append({
-                "name": line,  # El nombre completo es el identificador
-                "command": "metrics",
-                "arguments": [],
-                "address": f"{server_address}:{port}",
-                "network": "tcp",
-                "timeout": 5,
-                "labels": {
-                    "env": "prod"
-                }
-            })
+            # Crear la instancia usando OrderedDict para preservar el orden
+            instance = OrderedDict([
+                ("name", line),
+                ("command", "metrics"),
+                ("arguments", []),
+                ("address", f"{server_address}:{port}"),
+                ("network", "tcp"),
+                ("timeout", 5),
+                ("labels", OrderedDict([
+                    ("env", "prod")
+                ]))
+            ])
+            instances.append(instance)
 
 # Estructura YAML final
 yaml_data = {"instances": instances}
