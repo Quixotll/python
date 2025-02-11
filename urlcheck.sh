@@ -6,13 +6,13 @@ output_file="resultado_httpd.txt"
 # Limpiar archivo de salida
 echo "" > "$output_file"
 
-# Buscar todos los archivos httpd.pid en todas las subcarpetas de /nyl/opt/apache/servers
-find /nyl/opt/apache/servers -type f -name "httpd.pid" | while read -r pid_file; do
+# Buscar todos los archivos httpd.pid en todas las subcarpetas de /nyl/opt/apache/servers, siguiendo enlaces simbólicos
+find -L /nyl/opt/apache/servers -type f -name "httpd.pid" | while read -r pid_file; do
     # Obtener la ruta base del archivo httpd.pid
     base_dir=$(dirname "$pid_file")
     
-    # Buscar el archivo httpd.conf en la misma carpeta o cualquier subcarpeta
-    conf_file=$(find "$base_dir" -type f -name "httpd.conf" | head -n 1)
+    # Buscar el archivo httpd.conf dentro de la carpeta conf/ de la instancia
+    conf_file=$(find -L "$base_dir/../conf" -maxdepth 1 -type f -name "httpd.conf" 2>/dev/null)
     
     if [[ -f "$conf_file" ]]; then
         echo "-----------------------------------" >> "$output_file"
@@ -27,7 +27,8 @@ find /nyl/opt/apache/servers -type f -name "httpd.pid" | while read -r pid_file;
         listen_ports=$(grep -iE "^\s*Listen" "$conf_file" | awk '{print $2}')
         echo "Listen: ${listen_ports:-No definido}" >> "$output_file"
     else
-        echo "No se encontró httpd.conf en $base_dir o sus subcarpetas" >> "$output_file"
+        echo "No se encontró httpd.conf en $base_dir/../conf" >> "$output_file"
     fi
 
 done
+
