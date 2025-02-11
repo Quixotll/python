@@ -1,33 +1,55 @@
-#!/bin/bash
+import re
 
-# Archivo de salida
-output_file="resultado_httpd.txt"
+# Ruta del archivo de texto que contiene las rutas de los archivos httpd.conf
+archivo_txt = 'rutas_archivos.txt'
 
-# Limpiar archivo de salida
-echo "" > "$output_file"
+# Lista para almacenar los resultados
+resultados = []
 
-# Buscar todos los archivos httpd.pid en todas las subcarpetas de /nyl/opt/apache/servers, siguiendo enlaces simbólicos
-find -L /nyl/opt/apache/servers -type f -name "httpd.pid" | while read -r pid_file; do
-    # Obtener la ruta base real del archivo httpd.pid
-    base_dir=$(dirname "$(realpath "$pid_file")")
-    
-    # Buscar el archivo httpd.conf dentro de la carpeta conf/ de la instancia
-    conf_file=$(find -L "$base_dir/../conf" -maxdepth 1 -type f -name "httpd.conf" 2>/dev/null)
-    
-    if [[ -f "$conf_file" ]]; then
-        echo "-----------------------------------" >> "$output_file"
-        echo "Archivo PID: $pid_file" >> "$output_file"
-        echo "Archivo de configuración: $conf_file" >> "$output_file"
-        
-        # Extraer ServerName
-        server_name=$(grep -iE "^\s*ServerName" "$conf_file" | awk '{print $2}')
-        echo "ServerName: ${server_name:-No definido}" >> "$output_file"
-        
-        # Extraer valores de Listen
-        listen_ports=$(grep -iE "^\s*Listen" "$conf_file" | awk '{print $2}')
-        echo "Listen: ${listen_ports:-No definido}" >> "$output_file"
-    else
-        echo "No se encontró httpd.conf en $(realpath "$base_dir/../conf")" >> "$output_file"
-    fi
+# Expresiones regulares para buscar los valores Listen y ServerName
+listen_pattern = re.compile(r'^\s*Listen\s+(\d+|\d+\.\d+\.\d+\.\d+:\d+|\[.*\]):(\d+)', re.IGNORECASE)
+servername_pattern = re.compile(r'^\s*ServerName\s+(\S+)', re.IGNORECASE)
 
-done
+# Función para buscar los valores en el archivo httpd.conf
+def buscar_valores_en_archivo(archivo):
+    listen_value = None
+    servername_value = None
+    try:
+        with open(archivo, 'r') as f:
+            for linea in f:
+                if not listen_value:
+                    match_listen = listen_pattern.match(linea)
+                    if match_listen:
+                        listen_value = match_listen.group(0)
+                if not servername_value:
+                    match_servername = servername_pattern.match(linea)
+                    if match_servername:
+                        servername_value = match_servername.group(0)
+                if listen_value and servername_value:
+                    break
+    except FileNotFoundError:
+        print(f"El archivo {archivo} no fue encontrado.")
+    return listen_value, servername_value
+
+# Leer las rutas de los archivos desde el archivo de texto
+with open(archivo_txt, 'r') as f:
+    rutas_archivos = f.readlines()
+
+# Recorremos cada ruta de archivo y buscamos los valores Listen y ServerName
+for archivo in rutas_archivos:
+    archivo = archivo.strip()  # Eliminamos posibles saltos de línea
+    listen, servername = buscar_valores_en_archivo(archivo)
+    if listen or servername:
+        resultados.append({
+            'archivo': archivo,
+            'Listen': listen,
+            'ServerName': servername
+        })
+
+# Mostramos los resultados
+for resultado in resultados:
+    print(f"Archivo: {resultado['archivo']}")
+    print(f"  Listen: {resultado['Listen']}")
+    print(f"  ServerName: {resultado['ServerName']}")
+    print("-" * 40)
+
