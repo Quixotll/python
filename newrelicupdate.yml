@@ -1,0 +1,29 @@
+---
+- name: Update New Relic Agent
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Ensure /nyl/opt/newrelic directory exists
+      ansible.builtin.file:
+        path: /nyl/opt/newrelic
+        state: directory
+        mode: '0755'
+
+    - name: Rename existing newrelic.jar
+      ansible.builtin.command:
+        cmd: mv /nyl/opt/newrelic/newrelic.jar /nyl/opt/newrelic/newrelic.jar.bak
+      args:
+        removes: /nyl/opt/newrelic/newrelic.jar
+
+    - name: Download newrelic2.jar
+      ansible.builtin.get_url:
+        url: "https://example.com/path/to/newrelic2.jar"
+        dest: /nyl/opt/newrelic/newrelic2.jar
+        mode: '0644'
+
+    - name: Rename newrelic2.jar to newrelic.jar
+      ansible.builtin.command:
+        cmd: mv /nyl/opt/newrelic/newrelic2.jar /nyl/opt/newrelic/newrelic.jar
+      args:
+        removes: /nyl/opt/newrelic/newrelic2.jar
